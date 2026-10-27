@@ -6,14 +6,28 @@
 <header><div class="brand"><span>✦</span>方向小岛</div><div class="badge">每天 5—8 分钟 · 慢慢来就会啦</div></header>
 <main><div class="intro"><div><div class="eyebrow">小小探险家，准备出发！</div><h1>前后左右，一起找一找。</h1><p>先动一动小手，再帮小伙伴找到方向。答错也没关系！</p></div><div class="island" aria-hidden="true">🏝️</div></div>
 <div class="layout"><nav aria-label="选择小游戏" id="nav"></nav><section class="card" id="card"></section></div>
-<details><summary>给陪练家长：怎样陪孩子玩？</summary><p>① 先确认孩子自己的左手，在左手戴一个小手环；不以写字的手判断左右。② 玩“我的左右手”时，让孩子先举真实的手，再点屏幕。页面不能检测孩子举手是否正确，请在旁观察。③ 每次玩 1—2 轮，每轮 6 题；能说清原因比做得快更重要。④ 再练物品摆放和小船前后，最后练人物转身。</p><p>第一阶段保留手环与方向提示；第二阶段减少提示；第三阶段加入转身。可手动选择难度，任意游戏都能重玩。人物题采用俯视图，小伙伴鼻子朝向的那一边就是前方；不要按屏幕左右直接作答。遇到困难，可以让孩子站起来，转成同样的朝向。</p><p>练习记录只保存在当前浏览器，不上传。建议每天：1 分钟举手热身 → 3 分钟小游戏 → 1 分钟在房间里指方向。</p><button class="secondary" id="reset">清除本机练习记录</button><span id="resetNote" role="status"></span></details><div class="foot">没有倒计时，没有排名。每一次认真观察，都是进步。 🌱</div></main>
+<details><summary>给陪练家长：怎样陪孩子玩？</summary><p>① 先确认孩子自己的左手，在左手戴一个小手环；不以写字的手判断左右。② 玩“我的左右手”时，让孩子先举真实的手，再点屏幕。页面不能检测孩子举手是否正确，请在旁观察。③ 每次玩 1—2 轮，每轮随机 6 题，各方向均衡练习；能说清原因比做得快更重要。④ 再练物品摆放和小船前后，最后练人物转身。</p><p>第一阶段保留手环与方向提示；第二阶段减少提示；第三阶段加入转身。可手动选择难度，任意游戏都能重玩。人物题采用俯视图，小伙伴鼻子朝向的那一边就是前方；不要按屏幕左右直接作答。遇到困难，可以让孩子站起来，转成同样的朝向。</p><p>练习记录只保存在当前浏览器，不上传。建议每天：1 分钟举手热身 → 3 分钟小游戏 → 1 分钟在房间里指方向。</p><button class="secondary" id="reset">清除本机练习记录</button><span id="resetNote" role="status"></span></details><div class="foot">没有倒计时，没有排名。每一次认真观察，都是进步。 🌱</div></main>
 <script>
 const games=[{name:'我的左右手',sub:'从自己的身体开始',icon:'👐'},{name:'帮物品找家',sub:'把小苹果放对位置',icon:'🍎'},{name:'小船向前开',sub:'先看朝向，再找前后',icon:'⛵'},{name:'小伙伴的左右',sub:'换个方向想一想',icon:'🧭'}];
 const dirs=['上','右','下','左'],arrows=['↑','→','↓','←'];let saved={};try{saved=JSON.parse(localStorage.getItem('direction-island-v1')||'{}')||{}}catch{}let game=0,level=1,index=0,first=0,missed=false,solved=false,q={},queue=[],stars=Number(saved.stars)||0;
-const $=s=>document.querySelector(s);function persist(){try{localStorage.setItem('direction-island-v1',JSON.stringify(saved))}catch{}}function shuffle(a){return a.sort(()=>Math.random()-.5)}
+const $=s=>document.querySelector(s);function persist(){try{localStorage.setItem('direction-island-v1',JSON.stringify(saved))}catch{}}function shuffle(a){const result=[...a];for(let i=result.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[result[i],result[j]]=[result[j],result[i]]}return result}
+function balancedSix(values){let result=[];while(result.length<6)result.push(...shuffle(values).slice(0,6-result.length));return result}
+function makeRound(g,l,previous=''){
+const relations=g===2?['前','后']:g===1&&l>1?['左','右','前','后']:['左','右'];
+const facings=g===2?(l===1?[0]:l===2?[0,1,3]:[0,1,2,3]):g===3?(l===1?[0]:l===2?[0,2]:[0,1,2,3]):[0];
+const rels=balancedSix(relations),faces=shuffle(balancedSix(facings)),candidates=[];
+// Six items are small enough to arrange exhaustively, so no random retry can get stuck.
+function arrange(remaining,round){if(!remaining.length){if(JSON.stringify(round)!==previous)candidates.push(round);return}
+for(const rel of new Set(remaining)){const i=round.length,facing=faces[i],last=round[i-1];
+if(i>=2&&last.rel===rel&&round[i-2].rel===rel)continue;
+if(last&&relations.length*facings.length>2&&last.rel===rel&&last.facing===facing)continue;
+const rest=[...remaining];rest.splice(rest.indexOf(rel),1);arrange(rest,[...round,{rel,facing}])}}
+arrange(rels,[]);if(!candidates.length)return makeRound(g,l,previous);
+return candidates[Math.floor(Math.random()*candidates.length)]}
+
 function nav(){ $('#nav').innerHTML=games.map((g,i)=>`<button class="game-tab ${i===game?'active':''}" data-game="${i}" aria-pressed="${i===game}"><span class="icon">${g.icon}</span><span><strong>${g.name}</strong><small>${g.sub}</small></span></button>`).join('')+'<div class="coach">🌱 小诀窍<br>先找自己的左手。<br>看人物时，先看朝向。<br><br>已收集 <b>'+stars+'</b> 颗小星星</div>';document.querySelectorAll('[data-game]').forEach(b=>b.onclick=()=>start(+b.dataset.game,Math.min(3,(saved[b.dataset.game]||1))))}
-function start(g,l){game=g;level=l;index=0;first=0;queue=shuffle([0,1,0,1,0,1]);nav();question()}
-function question(){missed=false;solved=false;const side=queue[index],facing=game===2?(level===1?0:level===2?[0,1,3][index%3]:index%4):game===3?(level===1?0:level===2?[0,2][index%2]:index%4):0;const rel=game===1?(level===1?(side?'右':'左'):['左','右','前','后'][index%4]):game===2?(side?'后':'前'):(side?'右':'左');let target=rel==='前'?facing:rel==='后'?(facing+2)%4:rel==='左'?(facing+3)%4:(facing+1)%4;q={rel,facing,target,side};render()}
+function start(g,l){game=g;level=l;index=0;first=0;const key=g+'-'+l;saved.lastRounds=saved.lastRounds||{};queue=makeRound(g,l,saved.lastRounds[key]);saved.lastRounds[key]=JSON.stringify(queue);persist();nav();question()}
+function question(){missed=false;solved=false;const {rel,facing}=queue[index];const side=rel==='右'?1:0;const target=rel==='前'?facing:rel==='后'?(facing+2)%4:rel==='左'?(facing+3)%4:(facing+1)%4;q={rel,facing,target,side};render()}
 function picture(type){
 const boat=`<path d="M30 85 Q20 93 13 88 M58 85 Q68 93 77 88" fill="none" stroke="#9bcbd8" stroke-width="4" stroke-linecap="round"/><path d="M45 6 C28 19 20 41 22 68 L28 80 H62 L68 68 C70 41 62 19 45 6Z" fill="#eb805b" stroke="#894c3d" stroke-width="3"/><path d="M45 15 C33 27 28 44 30 65 H60 C62 44 57 27 45 15Z" fill="#ffe6a1"/><path d="M34 71 H56" stroke="#9b503e" stroke-width="4" stroke-linecap="round"/><rect x="34" y="36" width="22" height="25" rx="5" fill="#fffdf3" stroke="#597f80" stroke-width="2"/><rect x="38" y="40" width="14" height="9" rx="2" fill="#7fc7da"/><circle cx="45" cy="24" r="3" fill="#fffdf3"/>`;
 const person=`<ellipse cx="45" cy="73" rx="29" ry="9" fill="#dacb91" opacity=".5"/><path d="M30 62 L29 77 M60 62 L61 77" stroke="#3f657b" stroke-width="12" stroke-linecap="round"/><path d="M26 40 Q17 46 14 59 M64 40 Q73 46 76 59" stroke="#f2ba87" stroke-width="11" stroke-linecap="round"/><path d="M28 35 Q45 28 62 35 L66 60 Q45 73 24 60Z" fill="#5cae98" stroke="#32796c" stroke-width="2"/><circle cx="24" cy="29" r="5" fill="#efb17e"/><circle cx="66" cy="29" r="5" fill="#efb17e"/><circle cx="45" cy="29" r="21" fill="#f7c593" stroke="#a66e48" stroke-width="2"/><path d="M40 13 Q45 0 50 13" fill="#f7c593" stroke="#a66e48" stroke-width="2"/><circle cx="35" cy="19" r="2.5" fill="#433b35"/><circle cx="55" cy="19" r="2.5" fill="#433b35"/><path d="M24 28 Q27 52 45 51 Q64 51 66 28 Q56 37 45 31 Q34 38 24 28Z" fill="#604536"/><path d="M33 42 Q45 47 57 42" fill="none" stroke="#7d5a40" stroke-width="3"/>`;
